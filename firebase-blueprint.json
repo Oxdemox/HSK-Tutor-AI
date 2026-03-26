@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Progress": {
+      "title": "Progress",
+      "description": "User learning progress for each HSK level",
+      "type": "object",
+      "properties": {
+        "hskLevel": { "type": "string" },
+        "percentage": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["hskLevel", "percentage"]
+    },
+    "History": {
+      "title": "History",
+      "description": "Chat history for a specific HSK level",
+      "type": "object",
+      "properties": {
+        "messages": { "type": "array", "items": { "type": "object" } },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["messages"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Store user profile and role"
+    },
+    "/users/{userId}/quiz_progress/{hskLevel}": {
+      "schema": "Progress",
+      "description": "Store user detailed quiz/sentence progress per level"
+    },
+    "/users/{userId}/history/{hskLevel}": {
+      "schema": "History",
+      "description": "Store user chat history per level"
+    }
+  }
+}

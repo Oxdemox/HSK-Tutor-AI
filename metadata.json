@@ -1,0 +1,5 @@
+{
+  "name": "HSK Tutor",
+  "description": "An intelligent Chinese language learning voice assistant to help you study Mandarin Chinese and prepare for HSK levels 1-6.",
+  "requestFramePermissions": ["microphone"]
+}

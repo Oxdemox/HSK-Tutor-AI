@@ -1,0 +1,6 @@
+{
+    "chatgpt.openOnStartup": true,
+    "chat.tools.terminal.autoApprove": {
+        "Set-Content": true
+    }
+}
