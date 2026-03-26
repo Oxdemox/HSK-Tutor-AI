@@ -1,47 +1,40 @@
-import { 
-  pgTable, 
-  text, 
-  timestamp, 
-  boolean, 
-  integer, 
-  jsonb, 
-  uuid, 
-  varchar 
-} from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, boolean, varchar, jsonb } from "drizzle-orm/pg-core";
+import { nanoid } from "nanoid";
 
-// --- Better Auth Required Tables ---
+// --- Better Auth Core Tables ---
 
 export const user = pgTable("user", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: boolean("emailVerified").notNull(),
+  emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
-  role: text("role").default("user"), // 'admin' | 'user'
+  role: text("role").default("user"), // Default role
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  
+  // Two Factor Authentication Fields
+  twoFactorEnabled: boolean("twoFactorEnabled").default(false),
+  twoFactorSecret: text("twoFactorSecret"),
+  twoFactorBackupCodes: text("twoFactorBackupCodes"),
 });
 
 export const session = pgTable("session", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   expiresAt: timestamp("expiresAt").notNull(),
   token: text("token").notNull().unique(),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   ipAddress: text("ipAddress"),
   userAgent: text("userAgent"),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
 });
 
 export const account = pgTable("account", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   accountId: text("accountId").notNull(),
   providerId: text("providerId").notNull(),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
   accessToken: text("accessToken"),
   refreshToken: text("refreshToken"),
   idToken: text("idToken"),
@@ -49,84 +42,58 @@ export const account = pgTable("account", {
   refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
   scope: text("scope"),
   password: text("password"),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
 export const verification = pgTable("verification", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
-  createdAt: timestamp("createdAt"),
-  updatedAt: timestamp("updatedAt"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+// --- Better Auth Plugin Tables ---
+
+export const passkey = pgTable("passkey", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  name: text("name"),
+  publicKey: text("publicKey").notNull(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  credentialID: text("credentialID").notNull(),
+  counter: integer("counter").notNull(),
+  deviceType: text("deviceType").notNull(),
+  backedUp: boolean("backedUp").notNull(),
+  transports: text("transports"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 
 // --- HSK Tutor Specific Tables ---
 
-export const userProgress = pgTable("user_progress", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id)
-    .unique(),
-  currentLevel: varchar("current_level", { length: 10 }).default("HSK 1"),
-  starredWords: jsonb("starred_words").default([]),
-  preferences: jsonb("preferences").default({
-    speakingRate: 1.0,
-    voiceId: 'zh-CN-Standard-A',
-    autoPlay: true,
-    dailyGoalMinutes: 15,
-    notificationsEnabled: true,
-    preferredPracticeTime: null,
-    smartHskEnabled: false,
-  }),
-  totalSessions: integer("total_sessions").default(0),
-  totalWordsLearned: integer("total_words_learned").default(0),
-  totalPracticeMinutes: integer("total_practice_minutes").default(0),
-  currentStreak: integer("current_streak").default(0),
-  longestStreak: integer("longest_streak").default(0),
-  lastActiveAt: timestamp("last_active_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const progress = pgTable("progress", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  hskLevel: text("hskLevel").notNull(), // "HSK 1", "HSK 2", etc.
+  percentage: integer("percentage").notNull().default(0),
+  lastUpdated: timestamp("lastUpdated").defaultNow(),
 });
 
-export const vocabularyProgress = pgTable("vocabulary_progress", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id),
-  wordId: text("word_id").notNull(),
-  status: varchar("status", { length: 20 }).default("new"), // 'new' | 'learning' | 'reviewing' | 'mastered'
-  correctCount: integer("correct_count").default(0),
-  incorrectCount: integer("incorrect_count").default(0),
-  lastReviewedAt: timestamp("last_reviewed_at"),
-  nextReviewAt: timestamp("next_review_at"),
-  easeFactor: text("ease_factor").default("2.5"),
-  interval: integer("interval").default(0),
+export const vocabulary = pgTable("vocabulary", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  word: text("word").notNull(),
+  pinyin: text("pinyin").notNull(),
+  meaning: text("meaning").notNull(),
+  masteryLevel: integer("masteryLevel").notNull().default(0), // 0 to 5
+  lastReviewed: timestamp("lastReview"),
 });
 
 export const learningSession = pgTable("learning_session", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id),
-  hskLevel: varchar("hsk_level", { length: 10 }).notNull(),
-  startedAt: timestamp("started_at").defaultNow(),
-  endedAt: timestamp("ended_at"),
-  accuracy: integer("accuracy").default(0),
-  fluencyScore: integer("fluency_score"),
-  scenario: text("scenario"),
-});
-
-export const sessionMessage = pgTable("session_message", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id")
-    .notNull()
-    .references(() => learningSession.id),
-  role: varchar("role", { length: 20 }).notNull(), // 'user' | 'assistant'
-  content: text("content").notNull(),
-  timestamp: timestamp("timestamp").defaultNow(),
-  wordsLearned: jsonb("words_learned").default([]),
-  correctionsMade: jsonb("corrections_made").default([]),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "ai-chat", "quiz", "writing"
+  duration: integer("duration"), // in seconds
+  completedAt: timestamp("completedAt").defaultNow(),
 });

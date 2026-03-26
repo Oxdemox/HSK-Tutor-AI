@@ -5,7 +5,7 @@ import { authClient } from '@/lib/auth-client';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
-import { Mail, Lock, User, Loader2, Apple, Chrome, Linkedin, Monitor, Globe } from 'lucide-react';
+import { Mail, Lock, User, Loader2, Fingerprint, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -13,6 +13,7 @@ export default function SignUpPage() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +30,8 @@ export default function SignUpPage() {
       
       if (error) {
         setError(error.message || 'Failed to create account');
+      } else {
+        setSuccess(true);
       }
     } catch (err: any) {
       setError('An unexpected error occurred');
@@ -37,19 +40,53 @@ export default function SignUpPage() {
     }
   };
 
-  const handleSocialSignIn = async (provider: 'google' | 'apple' | 'microsoft' | 'linkedin') => {
-    await authClient.signIn.social({
-      provider,
-      callbackURL: '/dashboard',
-    });
+  const handlePasskeySignUp = async () => {
+    setLoading(true);
+    setError('');
+    try {
+        const { error } = await authClient.signUp.passkey({
+            name,
+            email,
+        });
+        if (error) setError(error.message || 'Passkey enrollment failed');
+    } catch (err) {
+        setError('Passkey operation failed or was cancelled');
+    } finally {
+        setLoading(false);
+    }
   };
+
+  if (success) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+            <Card className="w-full max-w-md p-10 bg-[#1a1a1a] border-[#333] shadow-2xl text-center">
+                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
+                    <CheckCircle2 className="text-green-500 w-10 h-10" />
+                </div>
+                <h1 className="text-3xl font-bold text-white mb-4">Enrollment Sent</h1>
+                <p className="text-gray-400 mb-8 leading-relaxed">
+                    We've sent a verification link to <span className="text-white font-bold">{email}</span>. 
+                    Please confirm your identity to complete your registration.
+                </p>
+                <Link href="/sign-in" className="inline-block w-full">
+                    <Button variant="secondary" className="w-full py-4 text-gray-300 border-[#333]">
+                        Back to Login
+                    </Button>
+                </Link>
+            </Card>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
       <Card className="w-full max-w-md p-8 bg-[#1a1a1a] border-[#333] shadow-2xl">
         <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/30 font-bold text-blue-500">
+            <User size={32} />
+          </div>
           <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-gray-400">Join the elite Mandarin learning community</p>
+          <p className="text-gray-400 text-sm">Join the Elite Mandarin Cohort</p>
         </div>
 
         {error && (
@@ -59,45 +96,45 @@ export default function SignUpPage() {
         )}
 
         <form onSubmit={handleSignUp} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Full Name</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
               <input
                 type="text"
                 required
-                className="w-full bg-[#121212] border border-[#333] rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                placeholder="John Doe"
+                className="w-full bg-[#121212] border border-[#333] rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Scholar Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
               <input
                 type="email"
                 required
-                className="w-full bg-[#121212] border border-[#333] rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                placeholder="you@example.com"
+                className="w-full bg-[#121212] border border-[#333] rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="you@hsk-tutor.ai"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
               <input
                 type="password"
                 required
-                className="w-full bg-[#121212] border border-[#333] rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                placeholder="Select a secure password"
+                className="w-full bg-[#121212] border border-[#333] rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Select secure password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -106,63 +143,34 @@ export default function SignUpPage() {
 
           <Button 
             type="submit" 
-            className="w-full py-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all disabled:opacity-50"
+            className="w-full py-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xl shadow-blue-500/10 transition-all disabled:opacity-50"
             disabled={loading}
           >
-            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Get Started'}
+            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Complete Enrollment'}
           </Button>
         </form>
 
-        <div className="relative my-8">
+        <div className="relative my-10">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-[#333]"></div>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-[#1a1a1a] text-gray-500">Or continue with</span>
+          <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-[0.2em]">
+            <span className="px-4 bg-[#1a1a1a] text-gray-600 italic">Advanced Hardware</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => handleSocialSignIn('google')}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-[#333] hover:bg-white/10 text-white rounded-lg transition-all"
-          >
-            <Chrome className="w-5 h-5" />
-            <span>Google</span>
-          </button>
-          <button
-            onClick={() => handleSocialSignIn('apple')}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-[#333] hover:bg-white/10 text-white rounded-lg transition-all"
-          >
-            <Apple className="w-5 h-5" />
-            <span>Apple</span>
-          </button>
-          <button
-            onClick={() => handleSocialSignIn('microsoft')}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-[#333] hover:bg-white/10 text-white rounded-lg transition-all"
-          >
-            <Monitor className="w-5 h-5" />
-            <span>Microsoft</span>
-          </button>
-          <button
-            onClick={() => handleSocialSignIn('linkedin')}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-[#333] hover:bg-white/10 text-white rounded-lg transition-all"
-          >
-            <Linkedin className="w-5 h-5" />
-            <span>LinkedIn</span>
-          </button>
-          <button
-            onClick={() => alert('WeChat login is currently in preview. Please check documentation for setup.')}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-green-900/20 border border-green-500/30 hover:bg-green-900/30 text-green-400 rounded-lg transition-all"
-          >
-            <Globe className="w-5 h-5" />
-            <span>WeChat</span>
-          </button>
-        </div>
+        <button
+          onClick={handlePasskeySignUp}
+          disabled={loading || !name || !email}
+          className="w-full flex items-center justify-center gap-3 py-4 px-4 bg-white/5 border border-[#333] hover:bg-blue-600/10 hover:border-blue-500/50 text-white rounded-xl transition-all group disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <Fingerprint className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform" />
+          <span className="font-bold">Fast-Track with Passkey</span>
+        </button>
 
-        <p className="mt-8 text-center text-gray-400 text-sm">
-          Already have an account?{' '}
-          <Link href="/sign-in" className="text-blue-500 hover:underline font-medium">Log in</Link>
+        <p className="mt-10 text-center text-gray-500 text-xs font-medium">
+          Already a scholar?{' '}
+          <Link href="/sign-in" className="text-blue-500 hover:underline font-bold">Resort to Log in</Link>
         </p>
       </Card>
     </div>

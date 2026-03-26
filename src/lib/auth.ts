@@ -2,7 +2,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { admin } from "better-auth/plugins";
+import { admin, magicLink, emailOTP, twoFactor } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -17,26 +18,20 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    },
-    apple: {
-      clientId: process.env.APPLE_CLIENT_ID || "",
-      clientSecret: process.env.APPLE_CLIENT_SECRET || "",
-    },
-    microsoft: {
-      clientId: process.env.MICROSOFT_CLIENT_ID || "",
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "",
-    },
-    linkedin: {
-      clientId: process.env.LINKEDIN_CLIENT_ID || "",
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET || "",
-    },
-  },
   plugins: [
-    admin(), // This adds role support and more
+    admin(),
+    magicLink({
+        sendMagicLink: async (data, request) => {
+            console.log("Send magic link to", data.email, "URL:", data.url);
+        }
+    }),
+    emailOTP({
+        sendVerificationOTP: async (data, request) => {
+            console.log("Send OTP to", data.email, "Code:", data.otp);
+        }
+    }),
+    twoFactor(),
+    passkey(),
   ],
   // Session Configuration
   session: {
